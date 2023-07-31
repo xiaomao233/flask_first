@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<head>    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://rawcdn.githack.com/python-visualization/folium/master/folium/templates/leaflet.awesome.rotate.css"/>
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_5836a77c48f640c88023131fd72475f6 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+            </style>
+        
+</head>
+<body>    
+    
+            <div class="folium-map" id="map_5836a77c48f640c88023131fd72475f6" ></div>
+        
+</body>
+<script>    
+    
+            var map_5836a77c48f640c88023131fd72475f6 = L.map(
+                "map_5836a77c48f640c88023131fd72475f6",
+                {
+                    center: [39.53185896666667, 116.289751905],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 17,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+            L.control.scale().addTo(map_5836a77c48f640c88023131fd72475f6);
+
+            
+
+        
+    
+            var tile_layer_dd57a34a21394c5c8b36b38bd0d4387a = L.tileLayer(
+                "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn\u0026size=1\u0026scale=1\u0026style=7\u0026x={x}\u0026y={y}\u0026z={z}",
+                {"attribution": "default", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            var circle_42cc9d3caaa148e3aca2cf13e7e81203 = L.circle(
+                [39.53196209, 116.2902411],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 1, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 2.6, "stroke": true, "weight": 3}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            circle_42cc9d3caaa148e3aca2cf13e7e81203.bindTooltip(
+                `<div>
+                     O-点障碍物
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_c8fcc03c919f4dc29a028c4cf33d4e80 = L.circle(
+                [39.53089246, 116.290303],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 1, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 0.5, "stroke": true, "weight": 3}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            circle_c8fcc03c919f4dc29a028c4cf33d4e80.bindTooltip(
+                `<div>
+                     O-点障碍物
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_dba0e7075d2a400ca26119f996fb0480 = L.circle(
+                [39.53087813, 116.2898748],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 1, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 0.5, "stroke": true, "weight": 3}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            circle_dba0e7075d2a400ca26119f996fb0480.bindTooltip(
+                `<div>
+                     O-点障碍物
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var poly_line_b43097e4622d4f60af6013dec8d48561 = L.polyline(
+                [[39.53237853245676, 116.2902669978826], [39.53237820753902, 116.2902228021176], [39.53132603881772, 116.29023686545224], [39.531326346624226, 116.29027873449252], [39.53237853245676, 116.2902669978826]],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "yellow", "fillOpacity": 0.5, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            poly_line_b43097e4622d4f60af6013dec8d48561.bindTooltip(
+                `<div>
+                     L-线障碍物
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var poly_line_1cdfffa299f941358cd34b08f1de297d = L.polyline(
+                [[39.53090713878587, 116.29069403487487], [39.53090794121403, 116.29068696512505], [39.530981686959045, 116.29070128348133], [39.5309808845301, 116.29070835323847], [39.53090713878587, 116.29069403487487]],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "yellow", "fillOpacity": 0.5, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_5836a77c48f640c88023131fd72475f6);
+        
+    
+            poly_line_1cdfffa299f941358cd34b08f1de297d.bindTooltip(
+                `<div>
+                     L-线障碍物
+                 </div>`,
+                {"sticky": true}
+            );
+        
+</script>

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+
+{% block head %}
+    {{ super() }}
+    <meta charset="UTF-8">
+{% endblock %}
+
+{% block title %}
+    Download
+{% endblock %}
+
+{% block page_content %}
+    <p>点击生成修改后的csv文件：</p>
+    <button type="button" onclick="creat_csv">现在生成</button>
+
+{% endblock %}

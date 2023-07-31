@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="../static/js/leaflet.curve.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="../static/css/leaflet.awesome.rotate.css"/>
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+            </style>
+            <style>
+                .dashLine{
+                    stroke-dasharray: 10;
+                    stroke: green;
+                }
+            </style>
+
+</head>
+<body>
+
+            <div class="folium-map" id="map" ></div>
+
+</body>
+<script>
+
+            data = eval('{{ data_json|safe }}');
+            var map = L.map(
+                "map",
+                {
+                    center: [39.53096943,116.2909319],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 10,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+            L.control.scale().addTo(map);
+
+
+            var tile_layer = L.tileLayer(
+                "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn\u0026size=1\u0026scale=1\u0026style=7\u0026x={x}\u0026y={y}\u0026z={z}",
+                {"attribution": "default", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            ).addTo(map);
+
+            var myIcon = L.icon({
+              //  iconUrl: '../static/img/green.svg',
+                iconUrl: '../static/img/green.png',
+                iconSize: [25, 25]
+            });
+            var circle_marker = [];
+            for(let i =0; i < 7; i++) {
+                circle_marker[i] = L.circleMarker(
+                    data[i],
+                    {
+                        "bubblingMouseEvents": true,
+                        "color": "red",
+                        "dashArray": null,
+                        "dashOffset": null,
+                        "fill": true,
+                        "fillColor": "red",
+                        "fillOpacity": 1,
+                        "fillRule": "evenodd",
+                        "lineCap": "round",
+                        "lineJoin": "round",
+                        "opacity": 1.0,
+                        "radius": 5,
+                        "stroke": true,
+                        "weight": 1
+                    }
+                ).addTo(map);
+              circle_marker[i].bindPopup(
+                    "i: " + i,
+                    {"sticky": true}
+                );
+            }
+
+            function DrawPoint() {
+                map.on('click', function (e) {
+                    let lat = e.latlng.lat;
+                    let lng = e.latlng.lng;
+                    var control_point = L.marker([lat, lng], {
+                        icon: myIcon,
+                        draggable: true // 允许点位拖拽
+                    }).addTo(map);
+                    control_point.on('drag',function move(e){
+                        control_point.setLatLng(e.latlng);
+                        var path = L.curve(['M',[39.581396912637935, 116.13201141357422],
+                            'S', [control_point.getLatLng().lat, control_point.getLatLng().lng],
+                            [39.6107456716115, 116.35620117187501]
+                        ],{fill:false, className:'dashLine'}).addTo(map);
+                    });
+
+                    //拖拽结束
+                    control_point.on('dragend', function (event) {
+                        var path = L.curve(['M',[39.581396912637935, 116.13201141357422],
+                                'S',[control_point.getLatLng().lat, control_point.getLatLng().lng],
+                                    [39.6107456716115,116.35620117187501]],
+                            {color:'red',fill:true}).addTo(map);
+                        console.log('实时坐标：' + control_point.getLatLng().lat + ', ' + control_point.getLatLng().lng);
+
+                    });
+
+                });
+            }
+            DrawPoint();
+
+           // map.on('click', curve_drag);
+
+
+
+
+
+</script>

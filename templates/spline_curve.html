@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="../static/css/leaflet.awesome.rotate.css"/>
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+            </style>
+
+</head>
+<body>
+
+            <div class="folium-map" id="map" ></div>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+<script>
+
+            var map = L.map(
+                "map",
+                {
+                    center: [39.53185896666667, 116.289751905],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 11,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+            L.control.scale().addTo(map);
+
+
+            var tile_layer = L.tileLayer(
+                "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn\u0026size=1\u0026scale=1\u0026style=7\u0026x={x}\u0026y={y}\u0026z={z}",
+                {"attribution": "default", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            ).addTo(map);
+
+            let myIcon = L.icon({
+                iconUrl: '../static/img/green.png',
+                iconSize: [15, 15]
+            });
+
+            let myIcon2 = L.icon({
+                iconUrl: '../static/img/red.png',
+                iconSize: [15, 15]
+            });
+
+            let startend = [];
+            startend[0] = new L.marker([39.581396912637935, 116.13201141357422],{icon:myIcon2}).addTo(map);
+            startend[1] = new L.marker([39.38021664686007, 116.41456604003908],{icon:myIcon2}).addTo(map);
+
+            let control_points = [];
+            let i = 0;
+            // control_points[0] = new L.marker();
+            // control_points[1] = new L.marker();
+            control_points[0] = new L.marker();
+            control_points[1] = new L.marker();
+            control_points[2] = new L.marker();
+            control_points[3] = new L.marker();
+            control_points[4] = new L.marker();
+            function DrawPoint(){
+                map.on('click', function (e) {
+                    control_points[i].setLatLng(e.latlng).addTo(map);
+                    control_points[i].dragging.enable();
+                    control_points[i].setIcon(myIcon);
+                    // console.log(control_point.getLatLng().lat);
+                    // console.log(control_points[i].getLatLng());
+                    i++;
+                    if (i > 4) {
+                        map.off('click');
+                    }
+                })
+            }
+
+
+            let j = 0;
+            let ps = [];
+            let path = new L.polyline(ps);
+            path.addTo(map);
+            function DrawCurve(){
+                path.removeFrom(map);
+                console.log(control_points[0].getLatLng());
+            points = [
+                        [startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+                        [startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+                        [control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+                        [control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+                        [control_points[2].getLatLng().lat, control_points[2].getLatLng().lng],
+                        [control_points[3].getLatLng().lat, control_points[3].getLatLng().lng],
+                        [control_points[4].getLatLng().lat, control_points[4].getLatLng().lng],
+                        [startend[1].getLatLng().lat, startend[1].getLatLng().lng],
+                        [startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+                    ];
+                    $.ajax({
+                        url: 'http://127.0.0.1:5000/bspline',
+                        data: JSON.stringify(points),
+                        contentType: 'application/json; charset=UTF-8',
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function (data) {
+                            console.log('ccccccc');
+                            console.log(data);
+                            data.unshift(points[0]);
+                            data.push(points[7]);
+                            path = L.polyline(
+                                data,
+                                {
+                                    "bubblingMouseEvents": true,
+                                    "color": "blue",
+                                    "dashArray": null,
+                                    "dashOffset": null,
+                                    "fill": false,
+                                    "fillColor": "orange",
+                                    "fillOpacity": 0.2,
+                                    "fillRule": "evenodd",
+                                    "lineCap": "round",
+                                    "lineJoin": "round",
+                                    "noClip": false,
+                                    "opacity": 0.8,
+                                    "smoothFactor": 1.0,
+                                    "stroke": true,
+                                    "weight": 3
+                                }
+                            ).addTo(map);
+                        },
+                        error: function (xhr, type) {
+                            console.log('bbbbbb');
+                        }
+                    });
+            }
+
+            function Dragend() {
+                path.removeFrom(map);
+                console.log(control_points[0].getLatLng());
+            points = [
+                        [startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+                        [startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+                        [control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+                        [control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+                        [control_points[2].getLatLng().lat, control_points[2].getLatLng().lng],
+                        [control_points[3].getLatLng().lat, control_points[3].getLatLng().lng],
+                        [control_points[4].getLatLng().lat, control_points[4].getLatLng().lng],
+                        [startend[1].getLatLng().lat, startend[1].getLatLng().lng],
+                        [startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+                    ];
+                $.ajax({
+                    url: 'http://127.0.0.1:5000/bspline',
+                    data: JSON.stringify(points),
+                    contentType: 'application/json; charset=UTF-8',
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log('ccccccc');
+                        // console.log(data);
+                        data.unshift(points[0]);
+                        data.push(points[7]);
+                        path = L.polyline(
+                            data,
+                            {
+                                "bubblingMouseEvents": true,
+                                "color": "blue",
+                                "dashArray": null,
+                                "dashOffset": null,
+                                "fill": false,
+                                "fillColor": "orange",
+                                "fillOpacity": 0.2,
+                                "fillRule": "evenodd",
+                                "lineCap": "round",
+                                "lineJoin": "round",
+                                "noClip": false,
+                                "opacity": 0.8,
+                                "smoothFactor": 1.0,
+                                "stroke": true,
+                                "weight": 3
+                            }
+                        ).addTo(map);
+                    },
+                    error: function (xhr, type) {
+                        console.log('bbbbbb');
+                    }
+                });
+            }
+
+            DrawPoint();
+            console.log(control_points.length);
+            for (let i = 0; i < control_points.length; i++) {
+                // control_points[i].on('drag', DrawCurve);
+                control_points[i].on('dragend', Dragend);
+            }
+
+</script>

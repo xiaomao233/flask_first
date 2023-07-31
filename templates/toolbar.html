@@ -1,0 +1,1178 @@
+{% extends 'base.html' %}
+
+{% block head %}
+    {{ super() }}
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <script>
+        L_NO_TOUCH = false;
+        L_DISABLE_3D = false;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="../static/css/leaflet.awesome.rotate.css"/>
+    <link rel="stylesheet" type='text/css' href="../static/css/controls.css">
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:0;top:0;bottom:0;right:0;left:0;}</style>
+
+    <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <style>
+        #map {
+            position: relative;
+            width: 100.0%;
+            height: 100.0%;
+            left: 0.0%;
+            top: 0.0%;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="folium-map" id="map" ></div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+<script>
+    //加载地图中心点
+    js_location_mid = eval('{{ location_mid_json|safe }}')
+
+    var map = L.map(
+        "map",
+        {
+            //center: [39.53185896666667, 116.289751905],
+            center: js_location_mid,
+            crs: L.CRS.EPSG3857,
+            zoom: 18,
+            zoomControl: true,
+            preferCanvas: false,
+        }
+    );
+    L.control.scale().addTo(map);
+
+    var lines = [];//线段图层集合，也就是路径集
+    var lines_group = new L.layerGroup().addTo(map);//线段图层
+
+    var lines_points = [];//线段端点集
+    var lines_points_group = new L.layerGroup().addTo(map);//连续的线段点图层
+
+    var centers = [];//线段中点集
+    var centers_group = new L.layerGroup().addTo(map);//线段中点图层
+
+    var baseLayer = {};//用不上，占位
+    var lands = new L.layerGroup();
+    //var routes = new L.layerGroup();
+    var barriers = new L.layerGroup();
+    overlays = {"地块":lands, "路径":lines_group, "障碍物": barriers};
+    L.control.layers(baseLayer, overlays).addTo(map);
+
+    var tile_layer = L.tileLayer(
+        "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn\u0026size=1\u0026scale=1\u0026style=7\u0026x={x}\u0026y={y}\u0026z={z}",
+        {"attribution": "default", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+    ).addTo(map);
+
+    //加载地块
+    js_lands = eval('{{ lands_list_json|safe }}');
+    var poly_line_lands = L.polyline(
+                js_lands,
+                {
+                    "bubblingMouseEvents": true,
+                    "color": "orange",
+                    "dashArray": null,
+                    "dashOffset": null,
+                    "fill": false,
+                    "fillColor": "orange",
+                    "fillOpacity": 0.2,
+                    "fillRule": "evenodd",
+                    "lineCap": "round",
+                    "lineJoin": "round",
+                    "noClip": false,
+                    "opacity": 0.8,
+                    "smoothFactor": 1.0,
+                    "stroke": true,
+                    "weight": 3
+                }
+            ).addTo(lands);
+
+    //加载路径
+    routes_location = eval('{{ routes_list_json|safe }}');
+
+    var poly_line_route = new Array(routes_location.length-1)
+            for(var i = 0; i < routes_location.length; i++)
+            {
+                if(i + 1 == routes_location.length)
+                    break;
+                else
+                {
+                    if(routes_location[i][2] == 1)
+                    {
+                        poly_line_route[i] = L.polyline(
+                            [   [   routes_location[i][0], routes_location[i][1]        ],
+                                [   routes_location[i+1][0], routes_location[i+1][1]    ]
+                            ],
+                            {   "bubblingMouseEvents": true,
+                                "color": "red",
+                                "dashArray": null,
+                                "dashOffset": null,
+                                "fill": false,
+                                "fillColor": "red",
+                                "fillOpacity": 0.2,
+                                "fillRule": "evenodd",
+                                "lineCap": "round",
+                                "lineJoin": "round",
+                                "noClip": false,
+                                "opacity": 0.5,
+                                "smoothFactor": 1.0,
+                                "stroke": true,
+                                "weight": 2
+                            }
+                        ).addTo(lines_group);
+                        lines.push(poly_line_route[i]);
+                    }
+                    else
+                    {
+                        poly_line_route[i] = L.polyline(
+                            [   [   routes_location[i][0], routes_location[i][1]        ],
+                                [   routes_location[i+1][0], routes_location[i+1][1]    ]
+                            ],
+                            {   "bubblingMouseEvents": true,
+                                "color": "blue",
+                                "dashArray": null,
+                                "dashOffset": null,
+                                "fill": false,
+                                "fillColor": "blue",
+                                "fillOpacity": 0.2,
+                                "fillRule": "evenodd",
+                                "lineCap": "round",
+                                "lineJoin": "round",
+                                "noClip": false,
+                                "opacity": 0.5,
+                                "smoothFactor": 1.0,
+                                "stroke": true,
+                                "weight": 2
+                            }
+                        ).addTo(lines_group);
+                        lines.push(poly_line_route[i]);
+                    }
+                }
+            }
+
+    //加载障碍物
+    circle = eval('{{ Circle_json|safe }}');
+    line4points = eval('{{ Line4points_json|safe }}');
+
+    var circle_array = new Array(circle.length)
+            for(var i=0; i<circle.length; i++)
+            {
+                circle_array[i] = L.circle(
+                    circle[i][1],
+                    {   "bubblingMouseEvents": true,
+                        "color": "green",
+                        "dashArray": null,
+                        "dashOffset": null,
+                        "fill": true,
+                        "fillColor": "green",
+                        "fillOpacity": 1,
+                        "fillRule": "evenodd",
+                        "lineCap": "round",
+                        "lineJoin": "round",
+                        "opacity": 1.0,
+                        "radius": circle[i][2],
+                        "stroke": true,
+                        "weight": 3
+                    }
+                ).addTo(barriers);
+
+                circle_array[i].bindTooltip(
+                    `<div>
+                        第 n 号O型-点障碍物<br>
+                    </div>`,
+                    {"sticky": true}
+                );
+            }
+
+            var line_array = new Array(line4points.length)
+            for(var i = 0; i < line4points.length; i++)
+            {
+                line_array[i] = L.polyline(
+                    line4points[i],
+                    {   "bubblingMouseEvents": true,
+                        "color": "orange",
+                        "dashArray": null,
+                        "dashOffset": null,
+                        "fill": true,
+                        "fillColor": "yellow",
+                        "fillOpacity": 0.5,
+                        "fillRule": "evenodd",
+                        "lineCap": "round",
+                        "lineJoin": "round",
+                        "noClip": false,
+                        "opacity": 1,
+                        "smoothFactor": 1.0,
+                        "stroke": true,
+                        "weight": 3
+                    }
+                ).addTo(barriers);
+                line_array[i].bindTooltip(
+                    `<div>
+                        L-线障碍物
+                    </div>`,
+                    {"sticky": true}
+                );
+            }
+
+
+
+    var myIcon1 = L.icon({
+        iconUrl: '../static/img/blueSign1.png',
+        iconSize: [10, 10]
+    });
+
+    var myIcon2 = L.icon({
+        iconUrl: '../static/img/redSign.png',
+        iconSize: [10, 10]
+    });
+
+    var myIcon3 = L.icon({
+        iconUrl: '../static/img/blueSign2.png',
+        iconSize: [15, 15]
+    });
+
+    //绘制点
+    var marker1 = L.marker([39.53185896666667, 116.289751905],{icon: myIcon1, draggable: true});
+    //marker1.addTo(map);
+    //marker1.on('click', marker_onChosen);
+    //marker1.on('dblclick', marker_onRemove);
+
+    //实现单击线选中
+    /*function line_onChosen(e){
+        let latlng = line1.getLatLngs();
+        var line_marker1 = L.marker(latlng[0],{icon: myIcon2}).addTo(line_layerGroup)
+        var line_marker1 = L.marker(latlng[1],{icon: myIcon2}).addTo(line_layerGroup)
+        line1.setStyle({color: 'black'})
+        //line1.removeFrom(map)
+    //).addTo(map);
+    }*/
+    //map.on('click', function(e){console.log(e.latlng)});
+
+    //创建工作图层
+    var points =[];//点图层数组
+    var points_data = [];//点的坐标数值
+    map.on('click', function(e){
+        console.log(e.latlng);
+    });
+
+    //
+    /*var lines = [];//线段图层
+    var lines_group = new L.layerGroup().addTo(map);
+    var line1 = L.polyline([[39.530582755806854,116.28688223635062],[39.53277266923519,116.28906508952889]],
+        {
+            color: 'orange',
+            weight: 6,
+        });
+    var line2 = L.polyline([[39.53277266923519,116.28906508952889],[39.53057033644111,116.29103341168228]],
+        {
+            color: 'green',
+            weight: 6,
+        });
+    line1.addTo(lines_group);
+    line2.addTo(lines_group);
+    lines.push(line1);
+    lines.push(line2);
+
+    var lines_points = [];//线段端点集
+    var lines_points_group = new L.layerGroup().addTo(map);//连续的线段点图层
+
+    var centers = [];//线段中点集
+    var centers_group = new L.layerGroup().addTo(map);//线段中点图层
+    */
+
+    //遍历线段集合，获取线段端点集合
+    for(let i = 0; i<lines.length;i++){
+        let tmp_latlngs;
+        if(i==0){
+            tmp_latlngs = lines[0].getLatLngs();
+            //console.log(tmp_latlngs);
+            let start = L.marker(tmp_latlngs[0],{icon:myIcon1}).addTo(lines_points_group);
+            lines_points.push(start);
+        }
+        tmp_latlngs = lines[i].getLatLngs();
+        let end = L.marker(tmp_latlngs[1],{icon:myIcon1}).addTo(lines_points_group);
+        lines_points.push(end);
+    }
+
+    //line1.on('click', drawPointOnLine);
+    /*绘制点在线上
+    function drawPointOnLine(e){
+        //L.marker(e.latlng,{icon: myIcon1}).addTo(line1);
+        var point_t1 = e.layerPoint;
+        var point_t2 = line1.closestLayerPoint(point_t1);
+        var latlng_t1 = map.layerPointToLatLng(point_t2);
+        var marker_t = L.marker(latlng_t1,{icon: myIcon1})
+        marker_t.addTo(map);
+    }
+    */
+
+    //工具栏
+    L.Toolbar = L.Control.extend({
+        options: {
+            position: 'topright',
+        },
+
+        initialize(options) {
+            L.Util.extend(this.options, options);
+            this._drawPointToggleStatus = false;
+            this._drawLineToggleStatus = false;
+            this._editLineToggleStatus = false;
+            this._drawCurveToggleStatus = false;
+        },
+
+        onAdd(map){
+            this._map = map;
+            this._toolbar = L.DomUtil.create(
+                'div',
+                'toolbar leaflet-bar leaflet-control'
+            );
+
+            //drawPoint
+            this._drawPointButtonContainer = L.DomUtil.create(
+                'div',
+                'button-container',
+                this._toolbar
+            );
+
+            this._drawPointButtonControl = L.DomUtil.create(
+                'a',
+                'button-control',
+                this._drawPointButtonContainer
+            );
+
+            this._drawPointImage = L.DomUtil.create(
+                'div',
+                'control-icon icon-marker',
+                this._drawPointButtonControl
+            );
+            this._drawPointImage.setAttribute('title', '绘制点');
+            this._drawPointActionsContainer = L.DomUtil.create(
+                'div',
+                'actions-container',
+                this._drawPointButtonContainer
+            );
+            this._drawPointActionEdit = L.DomUtil.create(
+                'a',
+                'action',
+                this._drawPointActionsContainer
+            );
+            this._drawPointActionEdit.innerHTML = '拖动';
+<!--            this._drawPointActionFinish = L.DomUtil.create(-->
+<!--                'a',-->
+<!--                'action',-->
+<!--                this._drawPointActionsContainer-->
+<!--            );-->
+<!--            this._drawPointActionFinish.innerHTML = '完成';-->
+
+            //绑定开关效果，点击展开侧面选项，再次点击恢复原状
+            L.DomEvent.addListener(this._drawPointButtonControl,'click', this._toggleDrawPoint,this);
+            //绑定修改按钮位置事件
+            L.DomEvent.addListener(this._drawPointActionEdit,'click', this._drawPointMoveFn,this);
+
+            //绑定按钮阻止冒泡
+            L.DomEvent.disableClickPropagation(this._drawPointButtonControl);
+            L.DomEvent.disableClickPropagation(this._drawPointActionEdit);
+
+
+            //drawLine
+            this._drawLineButtonContainer = L.DomUtil.create(
+                'div',
+                'button-container',
+                this._toolbar
+            );
+            this._drawLineButtonControl = L.DomUtil.create(
+                'a',
+                'button-control',
+                this._drawLineButtonContainer
+            );
+            this._drawLineImage = L.DomUtil.create(
+                'div',
+                'control-icon icon-drawLine',
+                this._drawLineButtonControl
+            );
+            this._drawLineImage.setAttribute('title', '绘制线段');
+            this._drawLineActionsContainer = L.DomUtil.create(
+                'div',
+                'actions-container',
+                this._drawLineButtonContainer
+            );
+
+            //绑定绘制线段事件
+            L.DomEvent.addListener(this._drawLineButtonControl,'click', this._toggleDrawLine,this);
+            //绑定单击按钮触发画线段事件，阻止冒泡
+            L.DomEvent.disableClickPropagation(this._drawLineButtonControl);
+
+            //editLine include addPoint, removePoint, movePoint
+            this._editLineButtonContainer = L.DomUtil.create(
+                'div',
+                'button-container',
+                this._toolbar
+            );
+            this._editLineButtonControl = L.DomUtil.create(
+                'a',
+                'button-control',
+                this._editLineButtonContainer
+            );
+            this._editLineImage = L.DomUtil.create(
+                'div',
+                'control-icon icon-editLine',
+                this._editLineButtonControl
+            );
+            this._editLineImage.setAttribute('title', '修改线段');
+            this._editLineActionsContainer = L.DomUtil.create(
+                'div',
+                'actions-container',
+                this._editLineButtonContainer
+            );
+            this._editLineActionDelete = L.DomUtil.create(
+                'a',
+                'action',
+                this._editLineActionsContainer
+            );
+            this._editLineActionDelete.innerHTML = '删点';
+
+            this._editLineActionMove = L.DomUtil.create(
+                'a',
+                'action',
+                this._editLineActionsContainer
+            );
+            this._editLineActionMove.innerHTML = '拖动';
+
+
+
+
+            //绑定线段增点事件
+            L.DomEvent.addListener(this._editLineButtonControl,'click', this._toggleEditLine, this);
+            //绑定线段删点事件，侧面按钮
+            L.DomEvent.addListener(this._editLineActionDelete,'click', this._editLineDeleteFn,this);
+            //绑定线段拖动事件，侧面按钮
+            L.DomEvent.addListener(this._editLineActionMove,'click', this._editLineMoveFn,this);
+
+            //绑定单击按钮触发画线段事件，阻止冒泡
+            L.DomEvent.disableClickPropagation(this._editLineButtonControl);
+            L.DomEvent.disableClickPropagation(this._editLineActionDelete);
+            L.DomEvent.disableClickPropagation(this._editLineActionMove);
+
+            //drawCurve
+            this._drawCurveButtonContainer = L.DomUtil.create(
+                'div',
+                'button-container',
+                this._toolbar
+            );
+            this._drawCurveButtonControl = L.DomUtil.create(
+                'a',
+                'button-control',
+                this._drawCurveButtonContainer
+            );
+            this._drawCurveImage = L.DomUtil.create(
+                'div',
+                'control-icon icon-drawCurve',
+                this._drawCurveButtonControl
+            );
+            this._drawCurveImage.setAttribute('title', '绘制曲线');
+            this._drawCurveActionsContainer = L.DomUtil.create(
+                'div',
+                'actions-container',
+                this._drawCurveButtonContainer
+            );
+            this._drawCurveActionSampling = L.DomUtil.create(
+                'a',
+                'action',
+                this._drawCurveActionsContainer
+            );
+            this._drawCurveActionSampling.innerHTML = '采样';
+            //绑定绘制曲线功能
+            L.DomEvent.addListener(this._drawCurveButtonControl,'click', this._toggleDrawCurve,this);
+            //L.DomEvent.addListener(this._drawCurveActionSampling,'click', this._drawCurveSamplingFn,this);
+            //绑定单击按钮触发画线段事件，阻止冒泡
+            L.DomEvent.disableClickPropagation(this._drawCurveButtonControl);
+            L.DomEvent.disableClickPropagation(this._drawCurveActionSampling);
+
+            return this._toolbar;
+        },
+
+        _disableOtherEvent(eventType){
+            switch(eventType){
+                case 'drawPoint':
+                    //关闭画线功能
+                    for(let i =0;i<lines.length;i++){
+                        lines[i].off();
+                    }
+
+                    //关闭线段的添加点功能
+                    this._map.off('mouseup');
+                    for(let i=0; i < centers.length ; i++){
+                        centers[i].off('mousedown');
+                        centers[i].removeFrom(centers_group);
+                    }
+                    centers.length = 0;
+
+                    //关闭线段的删点功能
+                    for(let i = 0; i < lines_points.length; i++){
+                        lines_points[i].off('mousedown');
+                    }
+                    //关闭线段的拖动事件
+                    for(let i=0; i < lines_points.length ; i++){
+                        lines_points[i].dragging.disable();
+                        lines_points[i].off('drag');
+                    }
+                    //关闭添加曲线事件
+
+                    //关闭曲线采样事件
+
+                    break;
+
+                case 'drawLine':
+                    //关闭点的绘制
+                    this._map.off('click');
+                    //关闭点的修改
+                    for(let i=0; i<points.length; i++ ){
+                        points[i].dragging.disable();
+                    }
+
+                    //关闭线段的修改功能，添加点
+                    this._map.off('mouseup');
+                    for(let i=0; i < centers.length ; i++){
+                        centers[i].off('mousedown');
+                        centers[i].removeFrom(centers_group);
+                    }
+                    centers.length = 0;
+                    //关闭线段的删点功能
+                    for(let j = 0; j < lines_points.length; j++){
+                        lines_points[j].off('mousedown');
+                    }
+                    //关闭线段的拖动事件
+                    for(let i=0; i < lines_points.length ; i++){
+                        lines_points[i].dragging.disable();
+                        lines_points[i].off('drag');
+                    }
+                    //关闭添加曲线事件
+
+                    //关闭曲线采样事件
+
+                    break;
+
+                case 'editLine':
+                    //关闭点的绘制
+                    this._map.off('click');
+                    //关闭点的修改
+                    for(let i=0; i<points.length; i++ ){
+                        points[i].dragging.disable();
+                    }
+
+                    //关闭画线功能
+                    for(let i =0;i<lines.length;i++){
+                        lines[i].off('click');
+                    }
+                    //关闭添加曲线事件
+
+                    //关闭曲线采样事件
+
+                    break;
+
+                case 'drawCurve':
+                    //关闭点的绘制
+                    this._map.off('click');
+                    //关闭点的修改
+                    for(let i=0; i<points.length; i++ ){
+                        points[i].dragging.disable();
+                    }
+
+                    //关闭画线功能
+                    for(let i =0;i<lines.length;i++){
+                        lines[i].off('click');
+                    }
+
+                    //关闭线段的修改功能，添加点
+                    this._map.off('mouseup');
+                    for(let i=0; i < centers.length ; i++){
+                        centers[i].off('mousedown');
+                        centers[i].removeFrom(centers_group);
+                    }
+                    centers.length = 0;
+                    //关闭线段的删点功能
+                    for(let j = 0; j < lines_points.length; j++){
+                        lines_points[j].off('mousedown');
+                    }
+                    //关闭线段的拖动事件
+                    for(let i=0; i < lines_points.length ; i++){
+                        lines_points[i].dragging.disable();
+                        lines_points[i].off('drag');
+                    }
+                    break;
+            }
+
+        },
+
+        //按钮样式变化事件，点击按钮后，开关值反转，应用对应样式
+        _toggleDrawPoint(){
+            //先关闭其他按钮
+            this._drawLineToggleStatus = false;
+            this._applyStyleClasses(this._drawLineButtonContainer, this._drawLineToggleStatus);
+            this._drawCurveToggleStatus = false;
+            this._applyStyleClasses(this._drawCurveButtonContainer, this._drawCurveToggleStatus);
+            this._editLineToggleStatus = false;
+            this._applyStyleClasses(this._editLineButtonContainer, this._editLineToggleStatus);
+
+            this._drawPointToggleStatus = !this._drawPointToggleStatus;
+            this._applyStyleClasses(this._drawPointButtonContainer, this._drawPointToggleStatus);
+            this._applyDrawPoint();
+        },
+
+        //触发绘制线段按钮
+        _toggleDrawLine(){
+            //先关闭其他按钮
+            this._drawPointToggleStatus = false;
+            this._applyStyleClasses(this._drawPointButtonContainer, this._drawPointToggleStatus);
+            this._drawCurveToggleStatus = false;
+            this._applyStyleClasses(this._drawCurveButtonContainer, this._drawCurveToggleStatus);
+            this._editLineToggleStatus = false;
+            this._applyStyleClasses(this._editLineButtonContainer, this._editLineToggleStatus);
+
+            this._drawLineToggleStatus = !this._drawLineToggleStatus;
+            this._applyStyleClasses(this._drawLineButtonContainer, this._drawLineToggleStatus);
+            this._applyDrawLine();
+        },
+
+        //触发修改线段按钮
+        _toggleEditLine(){
+            //先关闭其他按钮
+            this._drawPointToggleStatus = false;
+            this._applyStyleClasses(this._drawPointButtonContainer, this._drawPointToggleStatus);
+            this._drawLineToggleStatus = false;
+            this._applyStyleClasses(this._drawLineButtonContainer, this._drawLineToggleStatus);
+            this._drawCurveToggleStatus = false;
+            this._applyStyleClasses(this._drawCurveButtonContainer, this._drawCurveToggleStatus);
+
+
+            this._editLineToggleStatus = !this._editLineToggleStatus;
+            this._applyStyleClasses(this._editLineButtonContainer, this._editLineToggleStatus);
+            this._applyEditLine();
+        },
+
+        //触发绘制曲线按钮
+        _toggleDrawCurve(e){
+            //先关闭其他按钮
+            this._drawPointToggleStatus = false;
+            this._applyStyleClasses(this._drawPointButtonContainer, this._drawPointToggleStatus);
+            this._drawLineToggleStatus = false;
+            this._applyStyleClasses(this._drawLineButtonContainer, this._drawLineToggleStatus);
+            this._editLineToggleStatus = false;
+            this._applyStyleClasses(this._editLineButtonContainer, this._editLineToggleStatus);
+
+            this._drawCurveToggleStatus = !this._drawCurveToggleStatus;
+            this._applyStyleClasses(this._drawCurveButtonContainer, this._drawCurveToggleStatus);
+            //this._applyDrawCurve();
+        },
+
+        //根据按钮状态应用样式
+        _applyStyleClasses(buttonContainer, toggleStatus) {
+            if(!toggleStatus){
+                L.DomUtil.removeClass(buttonContainer, 'active');
+                L.DomUtil.removeClass(this._toolbar, 'activeChild');
+            }else{
+                L.DomUtil.addClass(buttonContainer, 'active');
+                L.DomUtil.addClass(this._toolbar, 'activeChild');
+            }
+        },
+        //绘图功能函数
+        //根据按钮状态绑定绘点功能
+        _applyDrawPoint(){
+            this._disableOtherEvent('drawPoint');
+
+            var points_group = new L.layerGroup().addTo(map);
+            if(!this._drawPointToggleStatus){
+                //关闭本身功能
+                this._map.off('click');
+                //关闭侧面按钮功能
+                //当关闭按钮后，点的修改功能也被关闭
+                for(let i=0; i<points.length; i++ ){
+                    points[i].dragging.disable();
+                }
+
+            }else{
+                /*
+                let latlng_t = lines[0].getCenter()
+                let latlng_t = lines[0].getLatLngs();
+                let center_point_point = map.latLngToLayerPoint(latlng_t[0]);
+                let tmp_point_on_line = lines[0].closestLayerPoint(center_point_point);
+                let tmp_latlng_on_line = map.layerPointToLatLng(tmp_point_on_line);
+                let center_point_on_line = L.marker(tmp_latlng_on_line, {icon:myIcon3}).addTo(map);
+                */
+                this._map.on('click', function(e){
+                    //记录坐标值
+                    points_data.push([e.latlng.lat, e.latlng.lng]);
+                    //创建点图层
+                    points[points.length] = L.marker(
+                                        e.latlng,
+                                        {
+                                            icon: myIcon1,
+                                            //draggable: true,
+                                            autoPan: true,
+                                        }
+                                     ).addTo(points_group);
+                });
+            }
+        },
+
+
+        //编辑点功能，切换可拖动不可拖动，改动class: leaflet-marker-draggable 无效，所以用marker.dragging.disable();控制拖动交互是否开启
+        /*
+        _editPointFn(){//废除了
+            let i;
+            let markerPane = document.getElementsByClassName('leaflet-pane leaflet-marker-pane');
+            let pointNodes = markerPane[0].getElementsByTagName('img');
+            if(!this._editPointStatus){
+                for(i=0; i<pointNodes.length; i++ ){
+                    L.DomUtil.removeClass(pointNodes[i], 'leaflet-marker-draggable');
+                }
+            }else{
+                for(i=0; i<pointNodes.length; i++ ){
+                    L.DomUtil.addClass(pointNodes[i], 'leaflet-marker-draggable');
+                }
+            }
+        },*/
+
+        //点的拖拽
+        _drawPointMoveFn(){
+            //先关闭点的生成功能
+            this._map.off('click');
+
+            for(let i=0; i<points.length; i++ ){
+               points[i].dragging.enable();
+            }
+        },
+
+
+
+        //绘制线段
+        _applyDrawLine(){
+            //关闭其他绘图功能
+            this._disableOtherEvent('drawLine');
+
+            let new_lines = [];//新加线段临时存储空间
+            let new_lines_points = [];//新加线段端点临时存储空间
+            let chosen_line;//选中的线段的索引
+            let line_points_startEnd = [];
+            line_points_startEnd[0] = new L.marker();
+            line_points_startEnd[1] = new L.marker();
+            let line_points_count = 0;//线段起始点数
+
+
+            let point_e;
+            let point_on_line;
+            let latlng_on_line;
+            let last_latlng;
+
+            let temp_line = new L.polyline([],{color:'#00FFFF', dashArray:  [10, 20]}).addTo(lines_group);
+            let start_line = false;
+
+            let ls = [];
+
+            if(!this._drawLineToggleStatus){
+                //关闭画线功能
+                for(let i =0;i<lines.length;i++){
+                    lines[i].off();
+                }
+            }else{
+                for(let i = 0; i < lines.length; i++){
+                    lines[i].on('click', function(e){
+                        chosen_line = i;
+                        //一旦选择一条线段上的点，关闭其他线段上的绘制曲线功能
+                        for(let m = 0;m < lines.length && m != i ; m++){
+                            lines[m].off('click');
+                        }
+                        //让点击的点位置更贴近线段本身
+                        point_e = e.layerPoint;
+                        point_on_line = lines[i].closestLayerPoint(point_e);
+                        latlng_on_line = this._map.layerPointToLatLng(point_on_line);
+
+                        line_points_startEnd[line_points_count].setLatLng(latlng_on_line).addTo(lines_points_group);
+                        line_points_startEnd[line_points_count].setIcon(myIcon1);
+
+                        line_points_count++;
+                        //当选择好起终点后，开始绘制线段
+                        if(line_points_count > 1){
+                            lines[i].off('click');
+                            line_points_count = 0;
+                            start_line = true;
+                            last_latlng = line_points_startEnd[0].getLatLng();//记录上一个点的坐标
+                            new_lines_points.push(line_points_startEnd[0]);//将起始点加入new_lines_points数组
+                        }
+                    });
+                }
+
+                //点击并确定线段
+                this._map.on('mousedown', function(e){
+                    if(start_line == true){//如果已经开始画线操作
+                        let new_point = L.marker(e.latlng,{icon:myIcon1}).addTo(lines_points_group);
+                        new_lines_points.push(new_point);//加点
+
+                        let new_line = new L.polyline([last_latlng, e.latlng],{color:'#2828FF'}).addTo(lines_group);
+                        new_lines.push(new_line);//加线
+                        last_latlng = e.latlng;
+                    }
+                });
+
+                //动态绘制线段
+                this._map.on('mousemove', function(e){
+                    if(start_line == true){
+                        ls = [last_latlng, e.latlng];
+                        temp_line.setLatLngs(ls);
+                    }
+                });
+
+                //鼠标右键结束线段绘制
+                this._map.on('contextmenu', function (){
+                    if(start_line == true){
+                        new_lines_points.push(line_points_startEnd[1]);//加入最后一个点
+
+                        let new_line = L.polyline([last_latlng, line_points_startEnd[1].getLatLng()],{color:'#2828FF'}).addTo(lines_group);
+                        new_lines.push(new_line);//加入最后一条线
+
+                        //生成被选中线的前部分和后部分线段加入new_lines数组，依次将new_lines加入lines数组
+                        let tmp_latlngs = lines[chosen_line].getLatLngs();
+                        let before_line = L.polyline([tmp_latlngs[0], line_points_startEnd[0].getLatLng()],{color:'#2828FF'}).addTo(lines_group);
+                        new_lines.splice(0, 0, before_line);
+                        let after_line = L.polyline([line_points_startEnd[1].getLatLng(), tmp_latlngs[1]],{color:'#2828FF'}).addTo(lines_group);
+                        new_lines.push(after_line);
+
+                        //先将被选中线段清除
+                        lines[chosen_line].removeFrom(lines_group);
+                        lines.splice(chosen_line, 1, new_lines[0]);
+                        //依次将新建线段加入lines数组
+                        let k = chosen_line;
+                        for(let m = 1; m < new_lines.length; m++){
+                            k++;
+                            lines.splice(k, 0, new_lines[m]);
+                        }
+                        //依次将新建线段端点加入lines_points数组
+                        for(let m = 0; m < new_lines_points.length; m++){
+                            chosen_line++;
+                            lines_points.splice(chosen_line, 0, new_lines_points[m]);
+                        }
+                        start_line = false;
+                        temp_line.removeFrom(lines_group);
+                        console.log(lines);
+                        console.log(lines_points);
+                        //_off_drawLine();
+
+                    }
+                });
+                /*function _off_drawLine(){
+                    if(start_line == false && end_line == true){
+                        this._map.off('mousedown');
+                        this._map.off('mouseover');
+                        this._map.off('dblclick');
+                        this._map.off('contextmenu');
+                        end_line = false;
+                        console.log("执行了绘制结束函数");
+                    }
+                }*/
+                //_off_drawLine();
+                //console.log("执行了绘制结束函数");
+            }
+        },
+
+        //线段的增点，点击功能
+        _applyEditLine(){
+            //关闭其他绘图功能
+            this._disableOtherEvent('editLine');
+
+            //中间点数组这两个必须是全局变量
+            //let centers = [];
+            //let centers_group = L.layerGroup().addTo(this._map);
+            if(!this._editLineToggleStatus){
+                console.log(centers);
+                //关闭线段增点功能
+                this._map.off('mouseup');
+                for(let i=0; i < centers.length ; i++){
+                    centers[i].off('mousedown');
+                    centers[i].removeFrom(centers_group);
+                }
+                centers.length = 0;
+
+                //同时也要关闭线段的侧面按钮功能
+                //关闭线段删点功能
+                for(let j = 0; j < lines_points.length; j++){
+                    lines_points[j].off('mousedown');
+                }
+                //关闭线段的拖动事件
+                for(let i=0; i < lines_points.length ; i++){
+                    lines_points[i].dragging.disable();
+                    lines_points[i].off('drag');
+                }
+            }else{
+                for(let i=0; i < lines.length ; i++){
+                    let line_points = lines[i].getLatLngs();
+                    let center = L.marker(lines[i].getCenter(), {icon:myIcon3}).addTo(centers_group);
+                    centers.splice(i, 0, center);//中点加入中点数组
+
+                    let isToggleCenter = false;
+                    center.once('mousedown', function(){
+                        isToggleCenter = true;
+                        console.log(i);
+
+                        let new_point = L.marker(center.getLatLng(),{icon: myIcon1}).addTo(lines_points_group);
+                        lines_points.splice(i+1, 0, new_point);
+                        console.log(lines_points);
+                        lines[i].removeFrom(lines_group);
+                        let line1 = L.polyline([line_points[0],center.getLatLng()], {color:'#2828FF'}).addTo(lines_group);
+                        lines[i] = line1;
+                        let line2 = L.polyline([center.getLatLng(),line_points[1]], {color:'#2828FF'}).addTo(lines_group);
+                        lines.splice(i+1, 0,line2);
+
+                        for(let j = 0; j < centers.length; j++){
+                            centers[j].off('mousedown');
+                            centers[j].removeFrom(centers_group);
+                        }
+                        centers.length = 0;
+
+                        map.on('mouseup', function(){
+                            if(isToggleCenter){
+                                isToggleCenter = false;
+                                for(let m=0; m < lines.length ; m++){
+                                    let line_points_in = lines[m].getLatLngs();
+                                    let center_in = L.marker(lines[m].getCenter(), {icon:myIcon3}).addTo(centers_group);
+                                    centers.splice(m, 0, center_in);//中点加入中点数组
+                                    center_in.once('mousedown', function(){
+                                        console.log(m);
+                                        isToggleCenter = true;
+                                        let new_point_in = L.marker(center_in.getLatLng(),{icon: myIcon1}).addTo(lines_points_group);
+                                        lines_points.splice(m+1, 0, new_point_in);
+                                        console.log(lines_points);
+
+                                        lines[m].removeFrom(lines_group);
+                                        let line1_in = L.polyline([line_points_in[0],center_in.getLatLng()], {color:'#2828FF'}).addTo(lines_group);
+                                        lines[m] = line1_in;
+                                        let line2_in = L.polyline([center_in.getLatLng(),line_points_in[1]], {color:'#2828FF'}).addTo(lines_group);
+                                        lines.splice(m+1, 0,line2_in);
+
+                                        for(let j = 0; j < centers.length; j++){
+                                            centers[j].off('mousedown');
+                                            centers[j].removeFrom(centers_group);
+                                        }
+                                        centers.length = 0;
+
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+                console.log(centers);
+            }
+        },
+
+        //线段的删点，点击删除
+        _editLineDeleteFn(){
+            //关闭主按钮事件，线段增点功能
+            this._map.off('mouseup');
+            for(let i=0; i < centers.length ; i++){
+                centers[i].off('mousedown');
+                centers[i].removeFrom(centers_group);
+            }
+            centers.length = 0;
+
+            //关闭线段修改的其他侧面按钮事件
+            //关闭线段的拖动事件
+            for(let i=0; i < lines_points.length ; i++){
+                lines_points[i].dragging.disable();
+                lines_points[i].off('drag');
+            }
+
+            console.log(lines_points);
+
+            if( lines_points.length == 2 ){//如果只有两个点，就是只剩下一条线，那么不论点哪个点，都要全部删除剩余的两个点和线
+                lines_points[0].once('mousedown', function(){
+                    lines[0].removeFrom(lines_group);
+                    lines.length = 0;
+                    lines_points[0].removeFrom(lines_points_group);
+                    lines_points[1].removeFrom(lines_points_group);
+                    lines_points.length = 0;
+                    //alert('路径已全部清除');
+                });
+                lines_points[1].once('mousedown', function(){
+                    lines[0].removeFrom(lines_group);
+                    lines.length = 0;
+                    lines_points[0].removeFrom(lines_points_group);
+                    lines_points[1].removeFrom(lines_points_group);
+                    lines_points.length = 0;
+                    //alert('路径已全部清除');
+                });
+            }else{//当线段多于一条时
+                for(let i = 0; i < lines_points.length ; i++){
+                    lines_points[i].on('mousedown', function(){
+                        if(i == 0 || i == lines_points.length-1){//点击第一个点和最后一个点
+                            lines_points[i].removeFrom(lines_points_group);
+                            lines_points.splice(i, 1);
+                            if( i == 0){//如果点击第一个点，删除第一个点和第一条线
+                                lines[i].removeFrom(lines_group);
+                                lines.splice(i, 1);
+                            }else{//如果点击最后一个点，删除最后一个点和最后一条线
+                                lines[i-1].removeFrom(lines_group);
+                                lines.splice(i-1, 1);
+                            }
+
+                            //清除初始化的其余点的点击功能
+                            for(let j = 0; j < lines_points.length; j++){
+                                lines_points[j].off('mousedown');
+                            }
+                        }else{//点击除了第一个点和最后一个点的其他点
+                            let new_line = L.polyline([lines_points[i-1].getLatLng(), lines_points[i+1].getLatLng()], /*{color:'#2828FF'}*/ {color: 'yellow'}).addTo(lines_group);
+                            lines[i-1].removeFrom(lines_group);
+                            lines[i].removeFrom(lines_group);
+                            lines.splice(i-1, 2, new_line);
+
+                            lines_points[i].removeFrom(lines_points_group);
+                            lines_points.splice( i, 1);
+
+                            //清除初始化的其余点的点击功能，注意不能放在循环外面，因为在map.on之前就要先清除一遍
+                            for(let j = 0; j < lines_points.length; j++){
+                                lines_points[j].off('mousedown');
+                            }
+
+                            map.on('mouseup', function(){//循环判断
+                                if( lines_points.length == 2 ){//当删除到只剩下一条线时
+                                    lines_points[0].once('mousedown', function(){
+                                        lines[0].removeFrom(lines_group);
+                                        lines.length = 0;
+                                        lines_points[0].removeFrom(lines_points_group);
+                                        lines_points[1].removeFrom(lines_points_group);
+                                        lines_points.length = 0;
+                                        //alert('路径已全部清除');
+                                    });
+                                    lines_points[1].once('mousedown', function(){
+                                        lines[0].removeFrom(lines_group);
+                                        lines.length = 0;
+                                        lines_points[0].removeFrom(lines_points_group);
+                                        lines_points[1].removeFrom(lines_points_group);
+                                        lines_points.length = 0;
+                                        //alert('路径已全部清除');
+                                    });
+                                }else{//当线段多于一条时
+                                    for(let m = 0; m < lines_points.length ; m++){
+                                        lines_points[m].on('mousedown', function(){
+                                            if(m == 0 || m == lines_points.length-1){//点击第一个点和最后一个点
+                                                lines_points[m].removeFrom(lines_points_group);
+                                                lines_points.splice(m, 1);
+                                                if( m == 0){//如果点击第一个点，删除第一个点和第一条线
+                                                    lines[m].removeFrom(lines_group);
+                                                    lines.splice(m, 1);
+                                                }else{//如果点击最后一个点，删除最后一个点和最后一条线
+                                                    lines[m-1].removeFrom(lines_group);
+                                                    lines.splice(m-1, 1);
+                                                }
+
+                                            }else{//点击除了第一个点和最后一个点的其他点
+                                                let new_line_in = L.polyline([lines_points[m-1].getLatLng(), lines_points[m+1].getLatLng()], /*{color:'#2828FF'}*/ {color: 'yellow'}).addTo(lines_group);
+                                                lines[m-1].removeFrom(lines_group);
+                                                lines[m].removeFrom(lines_group);
+                                                lines.splice(m-1, 2, new_line_in);
+                                                lines_points[m].removeFrom(lines_points_group);
+                                                lines_points.splice( m, 1);
+                                            }
+                                            //清除其余点的点击功能，保证循环正常
+                                            for(let j = 0; j < lines_points.length; j++){
+                                                lines_points[j].off('mousedown');
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        },
+
+        //线段的拖动修改，拖动线段端点实现对线段的角度，长度的调整
+        _editLineMoveFn(){
+            //关闭主按钮事件，线段增点功能
+            this._map.off('mouseup');
+            for(let i=0; i < centers.length ; i++){
+                centers[i].off('mousedown');
+                centers[i].removeFrom(centers_group);
+            }
+            centers.length = 0;
+
+            //关闭线段修改的其他侧面按钮事件
+            //关闭线段删点事件
+            for(let i = 0; i < lines_points.length; i++){
+                lines_points[i].off('mousedown');
+            }
+
+
+            //开启线段的点可拖动功能
+            for(let i = 0; i < lines_points.length; i++){
+                lines_points[i].dragging.enable();
+                let tmp_lines = new L.polyline([],{color:'#00FFFF', dashArray:  [10, 20]}).addTo(lines_group);//动态修改线段效果图层，虚线，浅蓝
+                let ls = [];
+                let tmp_point;
+                lines_points[i].on('dragstart', function(){
+                    tmp_point = L.marker(lines_points[i].getLatLng(),{icon:myIcon1}).addTo(lines_points_group);
+                });
+                lines_points[i].on('drag', function(e){
+
+                    tmp_lines.setLatLngs([]);
+                    tmp_lines.addTo(lines_group);
+                    if( i == 0){//拖动起始点
+                        ls = [e.latlng, lines_points[i+1].getLatLng()];
+                    }else if( i == lines_points.length-1){//拖动终止点
+                        ls = [lines_points[i-1].getLatLng(), e.latlng];
+                    }else{//一个动点两个定点的情况
+                        ls = [lines_points[i-1].getLatLng(), e.latlng, lines_points[i+1].getLatLng()];
+                    }
+                    tmp_lines.setLatLngs(ls);
+                    lines_points[i].setLatLng(e.latlng);//点
+                    lines_points[i].on('dragend', function(e){//当拖动停止时，
+                        tmp_lines.removeFrom(lines_group);//删除动态临时线
+                        tmp_point.removeFrom(lines_points_group);//删除临时原点
+                        if(i == 0){
+                            lines[0].setLatLngs(ls);
+                        }else if( i == lines_points.length-1){
+                            lines[lines.length-1].setLatLngs(ls);
+                        }else{
+                            lines[i-1].setLatLngs([ls[0], ls[1]]);
+                            lines[i].setLatLngs([ls[1], ls[2]]);
+                        }
+                        //lines_points[i].off('dragend');
+                    });
+                });
+            }
+        },
+
+        //绘制曲线事件
+        _applyDrawCurveLine(){
+            //关闭其他绘图功能
+            this._disableOtherEvent('');
+        },
+
+        //绘制曲线的采样事件
+        _drawCurveSampling(){
+            //关闭主绘图功能，绘制曲线功能
+
+        },
+    });
+
+    L.toolbar = function (options) {
+        return new L.Toolbar(options);
+    };
+
+    L.toolbar().addTo(map);
+</script>
+{% endblock %}

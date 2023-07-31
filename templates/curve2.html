@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <script>
+      L_NO_TOUCH = false;
+      L_DISABLE_3D = false;
+  </script>
+  <script src="../static/js/vue.js"></script>
+  <script src="../static/js/leaflet.js"></script>
+  <script src="../static/js/leaflet.curve.js"></script>
+  <script src="../static/js/jquery-1.12.4.min.js"></script>
+  <script src="../static/js/bootstrap.min.js"></script>
+  <script src="../static/js/leaflet.awesome-markers.js"></script>
+  <link rel="stylesheet" href="../static/css/leaflet.css"/>
+  <link rel="stylesheet" href="../static/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="../static/css/bootstrap-theme.min.css"/>
+  <link rel="stylesheet" href="../static/css/font-awesome.min.css"/>
+  <link rel="stylesheet" href="../static/css/leaflet.awesome-markers.css"/>
+  <link rel="stylesheet" href="../static/css/leaflet.awesome.rotate.css"/>
+  <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+  <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    #map {
+      position: relative;
+      width: 100.0%;
+      height: 100.0%;
+      left: 0.0%;
+      top: 0.0%;
+    }
+  </style>
+  <style>
+        .move {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background-color: steelblue;
+            border-radius: 10px;
+            cursor: move;
+            z-index:9999;
+        }
+  </style>
+
+</head>
+<body>
+  <div id="app">
+    <button @click="hide">点击</button>
+    <button @click="download">下载</button>
+    <div v-show="showGroup" class="move" @mousedown="mousedown" @mouseup="mouseup">
+      <p>{{ tips }}</p>
+      <input type="number" v-model.number:value="num" min="3" max="20">
+    </div>
+  </div>
+  <div class="folium-map" id="map" ></div>
+
+
+</body>
+
+<script>
+  let vm = new Vue({
+      el:'#app',
+      data:{
+          tips:'采样数量（3到20之间）：',
+          num:10,
+          m:1,
+          showGroup:false
+      },
+      methods: {
+          hide(){
+              this.showGroup =  !this.showGroup
+          },
+          download(){
+              //window.open("http://127.0.0.1:5000/download");
+              let $eleForm = $("<form method='get'></form>");
+              $eleForm.attr("action","http://127.0.0.1:5000/download");
+              $(document.body).append($eleForm);
+              //提交表单，实现下载
+              $eleForm.submit();
+          },
+          mousedown(e) {
+              let target = e.target;
+              let x = e.clientX;
+              let y = e.clientY;
+              let left = x - target.offsetLeft;
+              let top = y - target.offsetTop;
+              document.onmousemove = (e) => {
+                  let nx = e.clientX - left;
+                  let ny = e.clientY - top;
+                  target.style.left = nx + 'px';
+                  target.style.top = ny + 'px'
+              }
+            },
+          mouseup(e) {
+              document.onmousemove = null
+          }
+        }
+  });
+
+  let map = L.map(
+      "map",
+      {
+          center: [39.53096943,116.2909319],
+          crs: L.CRS.EPSG3857,
+          zoom: 18,
+          zoomControl: true,
+          preferCanvas: false,
+      }
+  );
+  L.control.scale().addTo(map);
+
+  let tile_layer = L.tileLayer(
+      "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn\u0026size=1\u0026scale=1\u0026style=7\u0026x={x}\u0026y={y}\u0026z={z}",
+      {"attribution": "default", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+  ).addTo(map);
+
+  let myIcon = L.icon({
+      iconUrl: '../static/img/green.png',
+      iconSize: [15, 15]
+  });
+
+  let myIcon2 = L.icon({
+      iconUrl: '../static/img/red.png',
+      iconSize: [15, 15]
+  });
+
+  let startend = [];
+  startend[0] = new L.marker([39.53088701, 116.29095456],{icon:myIcon2}).addTo(map);
+  startend[1] = new L.marker([39.53132948, 116.29095327],{icon:myIcon2}).addTo(map);
+
+  let control_points = [];
+  let i = 0;
+  control_points[0] = new L.marker();
+  control_points[1] = new L.marker();
+
+  function DrawPoint(){
+      map.on('click', function (e) {
+          control_points[i].setLatLng(e.latlng).addTo(map);
+          control_points[i].dragging.enable();
+          control_points[i].setIcon(myIcon);
+          i++;
+          if (i > 1) {
+              map.off('click');
+          }
+      })
+  }
+
+  let j = 0;
+  let path;
+  function DrawCurve(){
+      if(i > 0){
+          if(j >0)
+              path.removeFrom(map);
+          path = L.curve([
+              'M',[startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+              'C',[control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+                  [control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+                  [startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+          ],{fill:false, dashArray:'10'}).addTo(map);
+          j++;
+      }
+  }
+
+  function Dragend() {
+      path.removeFrom(map);
+      path = L.curve([
+          'M',[startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+          'C',[control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+              [control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+              [startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+      ],{fill:false, color:'green'}).addTo(map);
+      let points = [[startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+          [control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+          [control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+          [startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+      ];
+
+      // let points = {
+      //     "p0":[startend[0].getLatLng().lat, startend[0].getLatLng().lng],
+      //     "p1":[control_points[0].getLatLng().lat, control_points[0].getLatLng().lng],
+      //     "p2":[control_points[1].getLatLng().lat, control_points[1].getLatLng().lng],
+      //     "p3":[startend[1].getLatLng().lat, startend[1].getLatLng().lng]
+      // };
+
+      $.ajax({
+          url:'http://127.0.0.1:5000/curve',
+          data:JSON.stringify(points),
+          contentType: 'application/json; charset=UTF-8',
+          type:'POST',
+          dataType:'text',
+          success:function(data){
+              console.log('ccccccc');
+              console.log(data);
+              if(data == 0){
+                  path.setStyle({color:'red'});
+                  console.log('aaaaaaaaaaa')
+              }
+          },
+          error:function (xhr, type) {
+              console.log('bbbbbb');
+          }
+      });
+  }
+
+  function traceCurve() {
+      let array = [];
+      for(let i = 0; i < vm.num + 1; i++)
+      {
+          array[i] = i / vm.num;
+      }
+      let latlng = path.trace(array);
+      path.removeFrom(map);
+      let line = L.polyline(latlng,{color:'green'}).addTo(map);
+  }
+
+  DrawPoint();
+
+  control_points[0].on('drag', DrawCurve);
+  control_points[1].on('drag', DrawCurve);
+
+  control_points[0].on('dragend', Dragend);
+  control_points[1].on('dragend', Dragend);
+
+  map.on('dblclick', traceCurve);
+
+</script>

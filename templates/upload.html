@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Upload
+{% endblock %}
+
+{% block page_content %}
+<!--   enctype="multipart/form-data是设置表单的MIME编码。默认情况，
+这个编码格式是application/x-www-form-urlencoded，不能用于文件上传；只有使用了multipart/form- data，才能完整的传递文件数据，-->
+        <form action = "http://localhost:5000/upload/" method = "POST" enctype="multipart/form-data">
+          {{form.csrf_token()}}
+          {{form.lands_file.label}} <br> {{form.lands_file}} <br>
+          {{form.routes_file.label}} <br> {{form.routes_file}} <br>
+          {{form.barriers_file.label}} <br> {{form.barriers_file}} <br>
+          {{form.parameters_file.label}} <br> {{form.parameters_file}} <br>
+            <br>
+          {{form.submit}} <br>
+<!--          获取前端发送过来的闪现消息-->
+          {% for m in get_flashed_messages():%}
+            提示：{{m}}
+          {% endfor %}
+        </form>
+{% endblock %}

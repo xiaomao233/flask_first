@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <script language="javascript">
+        function exec1 (command) {
+          var ws = new ActiveXObject("WScript.Shell");
+          if(ws.run(command)==0)
+	alert("成功");
+          else
+	alert("失败");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <title>下载文件</title>
+</head>
+<body>
+hello world<br>
+<input type="button" value=">>生成文件" onclick="exec1('pythonw -i C:/Users/sunshuai/PycharmProjects/untitled11/download.py')" />
+</body>
+</html>

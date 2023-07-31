@@ -1,0 +1,19 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+    {% if title %}
+        {{title}}
+    {% else %}
+        Flask App
+    {% endif %}
+{% endblock %}
+
+{% block navbar %}
+    {% include 'navbar.html' %}
+{% endblock %}
+
+{% block content %}
+{% block page_content %}{% endblock %}
+{% endblock %}
+
+
